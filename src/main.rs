@@ -137,7 +137,6 @@ fn print_usage_and_exit() {
 }
 
 fn blur(args: &[String]) {
-
     const INFILE: usize = 0;
     const OUTFILE: usize = 1;
     const PARAM: usize = 2;
@@ -153,7 +152,6 @@ fn blur(args: &[String]) {
 }
 
 fn brightness(args: &[String]) {
-
     const INFILE: usize = 0;
     const OUTFILE: usize = 1;
     const PARAM: usize = 2;
@@ -204,19 +202,17 @@ fn rotate(args: &[String]) {
 
     let degrees = args[PARAM].parse::<f32>().unwrap();
 
-    let img2;
     if degrees == 90.0 {
-        img2 = img.rotate90();
+        img.rotate90();
     } else if degrees == 180.0 {
-        img2 = img.rotate180();
+        img.rotate180();
     } else if degrees == 270.0 {
-        img2 = img.rotate270();
+        img.rotate270();
     } else {
-        img2 = img;
         print_usage_and_exit();
-    }
+    };
 
-    img2.save(&args[OUTFILE]).expect("Failed writing OUTFILE.");
+    img.save(&args[OUTFILE]).expect("Failed writing OUTFILE.");
     // There are 3 rotate functions to choose from (all clockwise):
     //   .rotate90()
     //   .rotate180()
@@ -268,6 +264,10 @@ fn generate(args: &[String]) {
     const OUTFILE: usize = 0;
     const PARAM: usize = 1;
 
+    const MAIN_COLOR: usize = 1;
+    const BACKGROUND_1: usize = 0;
+    const BACKGROUND_2: usize = 2;
+
     let width = 800;
     let height = 800;
 
@@ -277,36 +277,17 @@ fn generate(args: &[String]) {
     let scale_y = 3.0 / height as f32;
 
     let mut colors: [u8; 3] = [0, 0, 0];
-    let color1; //red
-    let color2; //grean
-    let color3; //blue
 
-    match args[PARAM].as_str() {
-        "gren" => {
-            color1 = 0;
-            color2 = 2;
-            color3 = 1;
-        }
-        "red" => {
-            color1 = 2;
-            color2 = 0;
-            color3 = 1;
-        }
-        "blue" => {
-            color1 = 0;
-            color2 = 1;
-            color3 = 2;
-        }
-        _ => {
-            color1 = 1;
-            color2 = 2;
-            color3 = 0;
-        }
-    }
+    let (red, green, blue) = match args[PARAM].as_str() {
+        "green" => (BACKGROUND_1, MAIN_COLOR, BACKGROUND_2),
+        "red" => (MAIN_COLOR, BACKGROUND_2, BACKGROUND_1),
+        "blue" => (BACKGROUND_1, BACKGROUND_2, MAIN_COLOR),
+        _ => (MAIN_COLOR, BACKGROUND_2, BACKGROUND_2),
+    };
     for (x, y, pixel) in imgbuf.enumerate_pixels_mut() {
         // Use red and blue to be a pretty gradient background
         colors[0] = (0.3 * x as f32) as u8; //red
-        colors[1] = (0.3 * y as f32) as u8; //blue
+        colors[2] = (0.3 * y as f32) as u8; //blue
 
         // Use green as the fractal foreground (here is the fractal math part)
         let cx = y as f32 * scale_x - 1.5;
@@ -316,14 +297,14 @@ fn generate(args: &[String]) {
         let mut z = num_complex::Complex::new(cx, cy);
 
         //let mut green = 0;//color1
-        colors[2] = 0;
-        while colors[2] < 255 && z.norm() <= 2.0 {
+        colors[1] = 0;
+        while colors[1] < 255 && z.norm() <= 2.0 {
             z = z * z + c;
-            colors[2] += 1;
+            colors[1] += 1;
         }
 
         // Actually set the pixel. red, green, and blue are u8 values!
-        *pixel = image::Rgb([colors[color1], colors[color2], colors[color3]]);
+        *pixel = image::Rgb([colors[red], colors[green], colors[blue]]);
     }
 
     imgbuf.save(&args[OUTFILE]).unwrap();
